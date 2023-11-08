@@ -358,13 +358,83 @@ bool A_AddSymbolToTable(string symbolName, string symbolValue,
 
 // Interprets a compiler-generated semantic token and updates symbolics' table.
 void A_InterpretSemantic(Struct_SemanticTable semantic,
-    vector<Struct_SymbolicTable>& ref_vec_symbolics)
+    vector<Struct_SymbolicTable>& ref_vec_Symbolics)
 {
     string target = semantic.l_operand;
     if (target == "")
         throw INTERPRETER_ERROR_NULL_LOPERAND;
 
     string firstOperand = semantic.first_operand;
+    if (firstOperand == "")
+        throw INTERPRETER_ERROR_NULL_ROPERAND;
+
+    string secondOperand = semantic.second_operand;
 
 
+}
+
+// Fetches the true value of a operand, by referring to symbolics' table.
+int M_FetchMemoryZone(vector<Struct_SymbolicTable> vec_Symbolics,
+    string operand)
+{
+    bool isNumeric = C_IsStringANumber(operand);
+
+    int operandValue;
+    
+    if (isNumeric)
+        operandValue = Conv_FromString_ToInt32(operand);
+    else
+    {
+        bool found = false;
+        for (size_t i = 0; i < vec_Symbolics.size(); i++)
+        {
+            if (vec_Symbolics[i].name == operand)
+            {
+                found = true;
+                operandValue = Conv_FromString_ToInt32(vec_Symbolics[i].value);
+                break;
+            }
+        }
+        if (!found)
+            throw INTERPRETER_ERROR_SYMBOLIC_NOT_FOUND;
+    }
+
+    return operandValue;
+}
+
+// Checks whether an input string is a number or not.
+bool C_IsStringANumber(string str)
+{
+    for (size_t i = 0; i < str.length(); i++)
+    {
+        if ((str[i] < '0') || (str[i] > '9'))
+            return false;
+    }
+
+    return true;
+}
+
+// Converts a numerical string to its integer representation.
+int Conv_FromString_ToInt32(string str)
+{
+    if (!C_IsStringANumber(str))
+        throw EXCEPTION_ARGUMENTEXCEPTION;
+
+    if (str.size() == 0)
+        return 0;
+
+    bool isSigned = (str[0] == '-');
+    size_t i = 0;
+    if (isSigned)
+        i = 1;
+
+    int result = 0;
+    for (; i < str.length(); i++)
+    {
+        int digit = (int)(str[i] - '0');
+        result *= 10;
+        result += digit;
+    }
+
+    return isSigned ? (result * -1) : result;
 }

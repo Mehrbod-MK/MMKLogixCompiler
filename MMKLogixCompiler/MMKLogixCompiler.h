@@ -14,6 +14,10 @@
 #define COMPILER_ERROR_INCOMPLETE_STATEMENT 106
 
 #define INTERPRETER_ERROR_NULL_LOPERAND 200
+#define INTERPRETER_ERROR_NULL_ROPERAND 201
+#define INTERPRETER_ERROR_SYMBOLIC_NOT_FOUND 202
+
+#define EXCEPTION_ARGUMENTEXCEPTION 10
 
 // Includes.
 #include <iostream>
@@ -78,4 +82,14 @@ bool A_AddSymbolToTable(string symbolName, string symbolValue,
 
 // Interprets a compiler-generated semantic token and updates symbolics' table.
 void A_InterpretSemantic(Struct_SemanticTable semantic,
-	vector<Struct_SymbolicTable>& ref_vec_symbolics);
+	vector<Struct_SymbolicTable>& ref_vec_Symbolics);
+
+// Fetches the true value of a operand, by referring to symbolics' table.
+int M_FetchMemoryZone(vector<Struct_SymbolicTable> vec_Symbolics,
+	string operand);
+
+// Checks whether an input string is a number or not.
+bool C_IsStringANumber(string str);
+
+// Converts a numerical string to its integer representation.
+int Conv_FromString_ToInt32(string str);
