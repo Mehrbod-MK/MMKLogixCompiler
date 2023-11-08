@@ -9,6 +9,8 @@
 #define COMPILER_ERROR_ONE_ASSIGNMENT 101
 #define COMPILER_ERROR_EXPECTED_ASSIGNMENT_BEFORE_OPERATOR 102
 #define COMPILER_ERROR_ONE_OPERATOR_ALLOWED 103
+#define COMPILER_ERROR_LOPERAND_NOT_MEMORY_ZONE 104
+#define COMPILER_ERROR_DUPLICATED_OPERATORS 105
 
 // Includes.
 #include <iostream>
@@ -46,7 +48,8 @@ enum Compiler_Phase
 	VariableName = 1,
 	Assignment = 2,
 	Operator = 3,
-	EndOfStatement = 4,
+	Immediate_Integer = 4,
+	EndOfStatement = 5,
 };
 
 // Function Prototypes.

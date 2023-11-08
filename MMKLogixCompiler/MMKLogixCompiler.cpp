@@ -74,6 +74,36 @@ void A_GenerateTables(string inputLine,
                 identifier += x;
                 phase = VariableName;
             }
+            else if (phase == Immediate_Integer)
+                identifier += x;
+        }
+        // x is a digit 0-9.
+        else if ((x >= '0') && (x <= '9'))
+        {
+            if (phase == Undefined)
+            {
+                throw COMPILER_ERROR_IDENTIFIER_EXPECTED;
+            }
+            else if (phase == VariableName)
+            {
+                identifier += x;
+            }
+            else if (phase == Assignment)
+            {
+                identifier = "";
+
+                phase = Immediate_Integer;
+                identifier += x;
+            }
+            else if (phase == Operator)
+            {
+                identifier = "";
+
+                phase = Immediate_Integer;
+                identifier += x;
+            }
+            else if (phase == Immediate_Integer)
+                identifier += x;
         }
         // x is assignment operator.
         else if(x == '=')
@@ -113,6 +143,10 @@ void A_GenerateTables(string inputLine,
             {
                 throw COMPILER_ERROR_IDENTIFIER_EXPECTED;
             }
+            else if (phase == Immediate_Integer)
+            {
+                throw COMPILER_ERROR_LOPERAND_NOT_MEMORY_ZONE;
+            }
         }
         // x is another operator.
         else if (x == '+' || x == '-' || x == '*' || x == '/')
@@ -151,6 +185,54 @@ void A_GenerateTables(string inputLine,
                     throw COMPILER_ERROR_ONE_OPERATOR_ALLOWED;
                 }
             }
+            else if (phase == Assignment)
+            {
+                throw COMPILER_ERROR_IDENTIFIER_EXPECTED;
+            }
+            else if (phase == Operator)
+            {
+                throw COMPILER_ERROR_DUPLICATED_OPERATORS;
+            }
+            else if (phase == Immediate_Integer)
+            {
+                if (semanticTable.l_operand == "")
+                    throw COMPILER_ERROR_EXPECTED_ASSIGNMENT_BEFORE_OPERATOR;
+
+                if (semanticTable.middle_operator != "")
+                    throw COMPILER_ERROR_ONE_OPERATOR_ALLOWED;
+
+                semanticTable.middle_operator = x;
+
+                if (semanticTable.first_operand == "")
+                {
+                    cout << "Detected Immediate Integer:  " << identifier << endl;
+
+                    semanticTable.first_operand = identifier;
+                    phase = Operator;
+                }
+                else
+                {
+                    throw COMPILER_ERROR_ONE_OPERATOR_ALLOWED;
+                }
+            }
+        }
+    }
+
+    // Finish the tail.
+    if (phase == VariableName)
+    {
+        if (semanticTable.second_operand == "")
+        {
+            if (A_AddSymbolToTable(identifier, "", ref_vec_SymbolicTable))
+            {
+                cout << "Added symbolic identifier:  " << identifier << endl;
+            }
+            else
+            {
+                cout << "Identifier found:  " << identifier << endl;
+            }
+            
+            semanticTable.second_operand = identifier;
         }
     }
 }
