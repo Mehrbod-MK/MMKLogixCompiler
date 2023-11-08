@@ -33,6 +33,7 @@ int main()
     }
 }
 
+// Generates symbolic and semantic tables from input line string.
 void A_GenerateTables(string inputLine,
     vector<Struct_SymbolicTable>& ref_vec_SymbolicTable,
     vector<Struct_SemanticTable>& ref_vec_SemanticTable)
@@ -40,13 +41,12 @@ void A_GenerateTables(string inputLine,
     static string identifier = "";
     static Compiler_Phase phase = Undefined;
 
+    // Compiler semantics.
+    Struct_SemanticTable semanticTable = { "", "", "", "" };
+
     for (size_t i = 0; i < inputLine.length(); i++)
     {
-        char x = inputLine[i];
-
-        // Compiler informations.
-        // Struct_SymbolicTable symbolicTable = { "", "" };
-        Struct_SemanticTable semanticTable = { "", "", "", "" };
+        char x = inputLine[i];        
 
         // x is a supported character type.
         if ((x >= 'A' && x <= 'Z') || (x >= 'a' && x <= 'z'))
@@ -62,7 +62,17 @@ void A_GenerateTables(string inputLine,
                 identifier += x;
             else if (phase == Assignment)
             {
-                A_AddSymbolToTable(identifier, "", ref_vec_SymbolicTable);
+                identifier = "";
+
+                identifier += x;
+                phase = VariableName;
+            }
+            else if (phase == Operator)
+            {
+                identifier = "";
+
+                identifier += x;
+                phase = VariableName;
             }
         }
         // x is assignment operator.
@@ -70,6 +80,36 @@ void A_GenerateTables(string inputLine,
         {
             // Undefined is not allowed, throw error.
             if (phase == Undefined)
+            {
+                throw COMPILER_ERROR_IDENTIFIER_EXPECTED;
+            }
+            else if (phase == VariableName)
+            {
+                if (semanticTable.l_operand == "")
+                    semanticTable.l_operand = identifier;
+                else
+                {
+                    // Throw one assignment error.
+                    throw COMPILER_ERROR_ONE_ASSIGNMENT;
+                }
+
+                if (A_AddSymbolToTable(identifier, "", ref_vec_SymbolicTable))
+                {
+                    cout << "Added symbolic identifier:  " << identifier << endl;
+                }
+                else
+                {
+                    cout << "Identifier found:  " << identifier << endl;
+                }
+
+                phase = Assignment;
+            }
+            else if (phase == Assignment)
+            {
+                // Throw one assignment error.
+                throw COMPILER_ERROR_ONE_ASSIGNMENT;
+            }
+            else if (phase == Operator)
             {
                 throw COMPILER_ERROR_IDENTIFIER_EXPECTED;
             }
@@ -81,6 +121,35 @@ void A_GenerateTables(string inputLine,
             if (phase == Undefined)
             {
                 throw COMPILER_ERROR_IDENTIFIER_EXPECTED;
+            }
+            else if (phase == VariableName)
+            {
+                if (semanticTable.l_operand == "")
+                    throw COMPILER_ERROR_EXPECTED_ASSIGNMENT_BEFORE_OPERATOR;
+
+                if (semanticTable.middle_operator != "")
+                    throw COMPILER_ERROR_ONE_OPERATOR_ALLOWED;
+
+                semanticTable.middle_operator = x;
+
+                if (A_AddSymbolToTable(identifier, "", ref_vec_SymbolicTable))
+                {
+                    cout << "Added symbolic identifier:  " << identifier << endl;
+                }
+                else
+                {
+                    cout << "Identifier found:  " << identifier << endl;
+                }
+
+                if (semanticTable.first_operand == "")
+                {
+                    semanticTable.first_operand = identifier;
+                    phase = Operator;
+                }
+                else
+                {
+                    throw COMPILER_ERROR_ONE_OPERATOR_ALLOWED;
+                }
             }
         }
     }
