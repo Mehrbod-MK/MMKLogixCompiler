@@ -6,11 +6,103 @@
 
 int main()
 {
+    // Welcome text.
+    cout << "MMKLogixCompiler Program\nDeveloped by: Mehrbod Molla Kazemi\nProfessor:  Dr. Safaei Mehrabani\n\n";
+
+    // Compiler definitions.
+    vector<Struct_SymbolicTable> compiler_Symbolics;
+    vector<Struct_SemanticTable> compiler_Semantics;
+
     // Open program.txt.
     ifstream file_Program("program.txt");
+
+    // Check if file exists.
     if (!file_Program.is_open())
     {
         cout << "File program.txt not found!\b" << endl;
+        system("PAUSE");
+
         return -2;
     }
+
+    // Read program line by line.
+    string line;
+    while (getline(file_Program, line))
+    {
+        A_GenerateTables(line, compiler_Symbolics, compiler_Semantics);
+    }
+}
+
+void A_GenerateTables(string inputLine,
+    vector<Struct_SymbolicTable>& ref_vec_SymbolicTable,
+    vector<Struct_SemanticTable>& ref_vec_SemanticTable)
+{
+    static string identifier = "";
+    static Compiler_Phase phase = Undefined;
+
+    for (size_t i = 0; i < inputLine.length(); i++)
+    {
+        char x = inputLine[i];
+
+        // Compiler informations.
+        // Struct_SymbolicTable symbolicTable = { "", "" };
+        Struct_SemanticTable semanticTable = { "", "", "", "" };
+
+        // x is a supported character type.
+        if ((x >= 'A' && x <= 'Z') || (x >= 'a' && x <= 'z'))
+        {
+            if (phase == Undefined)
+            {
+                identifier = "";
+
+                identifier += x;
+                phase = VariableName;
+            }
+            else if (phase == VariableName)
+                identifier += x;
+            else if (phase == Assignment)
+            {
+                A_AddSymbolToTable(identifier, "", ref_vec_SymbolicTable);
+            }
+        }
+        // x is assignment operator.
+        else if(x == '=')
+        {
+            // Undefined is not allowed, throw error.
+            if (phase == Undefined)
+            {
+                throw COMPILER_ERROR_IDENTIFIER_EXPECTED;
+            }
+        }
+        // x is another operator.
+        else if (x == '+' || x == '-' || x == '*' || x == '/')
+        {
+            // Undefined is not allowed, throw error.
+            if (phase == Undefined)
+            {
+                throw COMPILER_ERROR_IDENTIFIER_EXPECTED;
+            }
+        }
+    }
+}
+
+// Checks if a symbol exists in compiler's symbolic table.
+bool C_SymbolExists(string symbolName,
+    vector<Struct_SymbolicTable> vec_SymbolicTable)
+{
+    for (size_t i = 0; i < vec_SymbolicTable.size(); i++)
+    {
+        if (vec_SymbolicTable[i].name == symbolName)
+            return true;
+    }
+    return false;
+}
+
+bool A_AddSymbolToTable(string symbolName, string symbolValue,
+    vector<Struct_SymbolicTable>& ref_vec_SymbolicTable)
+{
+    if (C_SymbolExists(symbolName, ref_vec_SymbolicTable))
+        return false;
+
+    ref_vec_SymbolicTable.push_back({ symbolName, symbolValue });
 }
