@@ -11,6 +11,9 @@
 #define COMPILER_ERROR_ONE_OPERATOR_ALLOWED 103
 #define COMPILER_ERROR_LOPERAND_NOT_MEMORY_ZONE 104
 #define COMPILER_ERROR_DUPLICATED_OPERATORS 105
+#define COMPILER_ERROR_INCOMPLETE_STATEMENT 106
+
+#define INTERPRETER_ERROR_NULL_LOPERAND 200
 
 // Includes.
 #include <iostream>
@@ -52,6 +55,12 @@ enum Compiler_Phase
 	EndOfStatement = 5,
 };
 
+enum Compiler_Mode
+{
+	Sequential = 0,
+	Concurrent = 1,
+};
+
 // Function Prototypes.
 
 // Generates symbolic and semantic tables from input line string.
@@ -66,3 +75,7 @@ bool C_SymbolExists(string symbolName,
 // Adds a new symbolic element to a symbolic table, if it doesn't exist.
 bool A_AddSymbolToTable(string symbolName, string symbolValue,
 	vector<Struct_SymbolicTable>& ref_vec_SymbolicTable);
+
+// Interprets a compiler-generated semantic token and updates symbolics' table.
+void A_InterpretSemantic(Struct_SemanticTable semantic,
+	vector<Struct_SymbolicTable>& ref_vec_symbolics);

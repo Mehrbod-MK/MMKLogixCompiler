@@ -12,6 +12,7 @@ int main()
     // Compiler definitions.
     vector<Struct_SymbolicTable> compiler_Symbolics;
     vector<Struct_SemanticTable> compiler_Semantics;
+    Compiler_Mode compilerMode;
 
     // Open program.txt.
     ifstream file_Program("program.txt");
@@ -25,11 +26,73 @@ int main()
         return -2;
     }
 
+    // Ask user to run in sequential or concurrent mode?
+    cout << "Do you want to run the compiler in Concurrent mode? (N= Sequential, Y= Concurrent), then press ENTER:\t";
+    char c = getchar();
+    if (c == 'y' || c == 'Y')
+        compilerMode = Concurrent;
+    else
+        compilerMode = Sequential;
+
     // Read program line by line.
     string line;
+    int lineCounter = 1;
     while (getline(file_Program, line))
     {
-        A_GenerateTables(line, compiler_Symbolics, compiler_Semantics);
+        try
+        {
+            A_GenerateTables(line, compiler_Symbolics, compiler_Semantics);
+
+            lineCounter++;
+        }
+        catch (int errCode)
+        {
+            cout << "ERROR Line " << lineCounter << ":\t";
+
+            switch (errCode)
+            {
+            case COMPILER_ERROR_IDENTIFIER_EXPECTED:
+                cout << "Expected identifier.";
+                break;
+
+            case COMPILER_ERROR_ONE_ASSIGNMENT:
+                cout << "Only one assignment operator allowed.";
+                break;
+
+            case COMPILER_ERROR_EXPECTED_ASSIGNMENT_BEFORE_OPERATOR:
+                cout << "Expected assignment before operator.";
+                break;
+
+            case COMPILER_ERROR_ONE_OPERATOR_ALLOWED:
+                cout << "Only one secondary operator allowed.";
+                break;
+
+            case COMPILER_ERROR_LOPERAND_NOT_MEMORY_ZONE:
+                cout << "Left-Operand must be a memory zone/variable name, not immediate.";
+                break;
+
+            case COMPILER_ERROR_DUPLICATED_OPERATORS:
+                cout << "Duplicated operators.";
+                break;
+
+            case COMPILER_ERROR_INCOMPLETE_STATEMENT:
+                cout << "Incomplete statement.";
+                break;
+            }
+
+            cout << endl << endl;
+
+            system("PAUSE");
+            return errCode * -1;
+        }
+    }
+
+    cout << endl << endl << "File compiled successfully.";
+    cout << endl << "Executing..." << endl << endl;
+
+    for (size_t i = 0; i < compiler_Semantics.size(); i++)
+    {
+
     }
 }
 
@@ -38,8 +101,8 @@ void A_GenerateTables(string inputLine,
     vector<Struct_SymbolicTable>& ref_vec_SymbolicTable,
     vector<Struct_SemanticTable>& ref_vec_SemanticTable)
 {
-    static string identifier = "";
-    static Compiler_Phase phase = Undefined;
+    string identifier = "";
+    Compiler_Phase phase = Undefined;
 
     // Compiler semantics.
     Struct_SemanticTable semanticTable = { "", "", "", "" };
@@ -221,20 +284,53 @@ void A_GenerateTables(string inputLine,
     // Finish the tail.
     if (phase == VariableName)
     {
-        if (semanticTable.second_operand == "")
+        if (A_AddSymbolToTable(identifier, "", ref_vec_SymbolicTable))
         {
-            if (A_AddSymbolToTable(identifier, "", ref_vec_SymbolicTable))
-            {
-                cout << "Added symbolic identifier:  " << identifier << endl;
-            }
-            else
-            {
-                cout << "Identifier found:  " << identifier << endl;
-            }
-            
+            cout << "Added symbolic identifier:  " << identifier << endl;
+        }
+        else
+        {
+            cout << "Identifier found:  " << identifier << endl;
+        }
+
+        if (semanticTable.first_operand == "")
+        {            
+            semanticTable.first_operand = identifier;
+        }
+        else if (semanticTable.second_operand == "")
+        {
             semanticTable.second_operand = identifier;
         }
     }
+    else if (phase == Immediate_Integer)
+    {
+        cout << "Detected Immediate Integer:  " << identifier << endl;
+
+        if (semanticTable.first_operand == "")
+        {
+            semanticTable.first_operand = identifier;
+        }
+        else if (semanticTable.second_operand == "")
+        {
+            semanticTable.second_operand = identifier;
+        }
+    }
+    else
+    {
+        throw COMPILER_ERROR_INCOMPLETE_STATEMENT;
+    }
+
+    ref_vec_SemanticTable.push_back(semanticTable);
+
+    // Semantic generated.
+    cout << "Semantic generated:  ";
+    cout << semanticTable.l_operand << " = ";
+    cout << semanticTable.first_operand << " ";
+    if (semanticTable.second_operand != "")
+    {
+        cout << semanticTable.middle_operator << " " << semanticTable.second_operand;
+    }
+    cout << endl << endl;
 }
 
 // Checks if a symbol exists in compiler's symbolic table.
@@ -256,4 +352,19 @@ bool A_AddSymbolToTable(string symbolName, string symbolValue,
         return false;
 
     ref_vec_SymbolicTable.push_back({ symbolName, symbolValue });
+
+    return true;
+}
+
+// Interprets a compiler-generated semantic token and updates symbolics' table.
+void A_InterpretSemantic(Struct_SemanticTable semantic,
+    vector<Struct_SymbolicTable>& ref_vec_symbolics)
+{
+    string target = semantic.l_operand;
+    if (target == "")
+        throw INTERPRETER_ERROR_NULL_LOPERAND;
+
+    string firstOperand = semantic.first_operand;
+
+
 }
