@@ -88,12 +88,44 @@ int main()
     }
 
     cout << endl << endl << "File compiled successfully.";
-    cout << endl << "Executing..." << endl << endl;
+    cout << endl << "Executing..." << endl;
 
-    for (size_t i = 0; i < compiler_Semantics.size(); i++)
+    if (compilerMode == Sequential)
+        cout << "Sequential mode:";
+    else
+        cout << "Concurrent mode:";
+    cout << endl << endl;
+
+    // Interpret semantics sequentially.
+    if (compilerMode == Sequential)
     {
-
+        for (size_t i = 0; i < compiler_Semantics.size(); i++)
+        {
+            A_InterpretSemantic(compiler_Semantics[i], compiler_Symbolics);
+        }
     }
+    else
+    {
+        for (size_t i = 0; i < compiler_Semantics.size(); i++)
+        {
+            A_InterpretSemantic(compiler_Semantics[i], compiler_Symbolics);
+
+            // Concurrence.
+            for (size_t j = 0; j < i; j++)
+            {
+                if (C_SemanticDependsOn(compiler_Semantics[j], compiler_Semantics[i].l_operand))
+                    A_InterpretSemantic(compiler_Semantics[j], compiler_Symbolics);
+            }
+        }
+    }
+
+    cout << "Program run successfully." << endl << "Result table:" << endl << endl;
+
+    for (size_t i = 0; i < compiler_Symbolics.size(); i++)
+        cout << compiler_Symbolics[i].name << " = " << compiler_Symbolics[i].value << endl;
+
+    cout << endl;
+    system("PAUSE");
 }
 
 // Generates symbolic and semantic tables from input line string.
@@ -186,7 +218,7 @@ void A_GenerateTables(string inputLine,
                     throw COMPILER_ERROR_ONE_ASSIGNMENT;
                 }
 
-                if (A_AddSymbolToTable(identifier, "", ref_vec_SymbolicTable))
+                if (A_AddSymbolToTable(identifier, "0", ref_vec_SymbolicTable))
                 {
                     cout << "Added symbolic identifier:  " << identifier << endl;
                 }
@@ -229,7 +261,7 @@ void A_GenerateTables(string inputLine,
 
                 semanticTable.middle_operator = x;
 
-                if (A_AddSymbolToTable(identifier, "", ref_vec_SymbolicTable))
+                if (A_AddSymbolToTable(identifier, "0", ref_vec_SymbolicTable))
                 {
                     cout << "Added symbolic identifier:  " << identifier << endl;
                 }
@@ -284,7 +316,7 @@ void A_GenerateTables(string inputLine,
     // Finish the tail.
     if (phase == VariableName)
     {
-        if (A_AddSymbolToTable(identifier, "", ref_vec_SymbolicTable))
+        if (A_AddSymbolToTable(identifier, "0", ref_vec_SymbolicTable))
         {
             cout << "Added symbolic identifier:  " << identifier << endl;
         }
@@ -370,28 +402,58 @@ void A_InterpretSemantic(Struct_SemanticTable semantic,
 
     string secondOperand = semantic.second_operand;
 
+    int firstValue = M_FetchMemoryZone(ref_vec_Symbolics, firstOperand);
+    int secondValue = -1;
+    if(secondOperand != "")
+        secondValue = M_FetchMemoryZone(ref_vec_Symbolics, secondOperand);
 
+    int assignmentValue = 0;
+
+    string mainOperator = semantic.middle_operator;
+
+    if(secondOperand == "")
+        assignmentValue = firstValue;
+    else
+    {
+        if (mainOperator == "+")
+            assignmentValue = firstValue + secondValue;
+        else if (mainOperator == "-")
+            assignmentValue = firstValue - secondValue;
+        else if (mainOperator == "*")
+            assignmentValue = firstValue * secondValue;
+        else if (mainOperator == "/")
+            assignmentValue = firstValue / secondValue;
+    }
+
+    size_t symbolIndex = M_FetchSymbolicIndex(ref_vec_Symbolics, target);
+    
+    // Assign value to symbolic table row.
+    ref_vec_Symbolics[symbolIndex].value = to_string(assignmentValue);
 }
 
 // Fetches the true value of a operand, by referring to symbolics' table.
-int M_FetchMemoryZone(vector<Struct_SymbolicTable> vec_Symbolics,
+int M_FetchMemoryZone(vector<Struct_SymbolicTable>& ref_vec_Symbolics,
     string operand)
 {
+
     bool isNumeric = C_IsStringANumber(operand);
 
-    int operandValue;
+    int operandValue = 0;
     
     if (isNumeric)
         operandValue = Conv_FromString_ToInt32(operand);
     else
     {
         bool found = false;
-        for (size_t i = 0; i < vec_Symbolics.size(); i++)
+        // cout << "NON-NUMERIC:  " << operand << endl;
+        for (size_t i = 0; i < ref_vec_Symbolics.size(); i++)
         {
-            if (vec_Symbolics[i].name == operand)
+            if (ref_vec_Symbolics[i].name == operand)
             {
                 found = true;
-                operandValue = Conv_FromString_ToInt32(vec_Symbolics[i].value);
+                /*cout << "FOUND SYMBOLIC: " << ref_vec_Symbolics[i].name << endl;
+                cout << "SYMBOLIC VALUE IS:  " << ref_vec_Symbolics[i].value;*/
+                operandValue = Conv_FromString_ToInt32(ref_vec_Symbolics[i].value);
                 break;
             }
         }
@@ -419,6 +481,7 @@ int Conv_FromString_ToInt32(string str)
 {
     if (!C_IsStringANumber(str))
         throw EXCEPTION_ARGUMENTEXCEPTION;
+        // cout << "ARG EXCEPTION" << endl;
 
     if (str.size() == 0)
         return 0;
@@ -437,4 +500,34 @@ int Conv_FromString_ToInt32(string str)
     }
 
     return isSigned ? (result * -1) : result;
+}
+
+// Fetches a symbolic index by looking up its name in symbolics' table.
+size_t M_FetchSymbolicIndex(vector<Struct_SymbolicTable> vec_Symbolics,
+    string symbolicName)
+{
+    size_t result = 0;
+
+    bool found = false;
+    for (; result < vec_Symbolics.size(); result++)
+    {
+        if (vec_Symbolics[result].name == symbolicName)
+        {
+            found = true;
+            break;
+        }
+    }
+
+    if (found)
+        return result;
+
+    throw INTERPRETER_ERROR_SYMBOLIC_NOT_FOUND;
+
+    return -1;
+}
+
+// Checks if a certain semantic has dependency on an operand.
+bool C_SemanticDependsOn(Struct_SemanticTable semantic, string operandName)
+{
+    return semantic.first_operand == operandName || semantic.second_operand == operandName;
 }

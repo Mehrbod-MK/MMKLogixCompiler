@@ -85,11 +85,18 @@ void A_InterpretSemantic(Struct_SemanticTable semantic,
 	vector<Struct_SymbolicTable>& ref_vec_Symbolics);
 
 // Fetches the true value of a operand, by referring to symbolics' table.
-int M_FetchMemoryZone(vector<Struct_SymbolicTable> vec_Symbolics,
+int M_FetchMemoryZone(vector<Struct_SymbolicTable>& ref_vec_Symbolics,
 	string operand);
+
+// Fetches a symbolic index by looking up its name in symbolics' table.
+size_t M_FetchSymbolicIndex(vector<Struct_SymbolicTable> vec_Symbolics,
+	string symbolicName);
 
 // Checks whether an input string is a number or not.
 bool C_IsStringANumber(string str);
 
 // Converts a numerical string to its integer representation.
 int Conv_FromString_ToInt32(string str);
+
+// Checks if a certain semantic has dependency on an operand.
+bool C_SemanticDependsOn(Struct_SemanticTable semantic, string operandName);
